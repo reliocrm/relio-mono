@@ -1,7 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
 
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
 import {
 	HeadContent,
 	Outlet,
@@ -9,14 +7,13 @@ import {
 	createRootRouteWithContext,
 	useRouterState,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import Header from "../components/header";
+import { HeroHeader } from "../components/header";
 import appCss from "../index.css?url";
 import type { QueryClient } from "@tanstack/react-query";
 import Loader from "@/components/loader";
 
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import type { AppRouter } from "@relio-mono/api/routers/index";
+import type { AppRouter } from "@relio/api/routers/index";
 export interface RouterAppContext {
 	trpc: TRPCOptionsProxy<AppRouter>;
 	queryClient: QueryClient;
@@ -33,7 +30,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "My App",
+				title: "Relio",
 			},
 		],
 		links: [
@@ -50,18 +47,16 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 function RootDocument() {
 	const isFetching = useRouterState({ select: (s) => s.isLoading });
 	return (
-		<html lang="en" className="dark">
+		<html lang="en" className="system">
 			<head>
 				<HeadContent />
 			</head>
 			<body>
-				<div className="grid h-svh grid-rows-[auto_1fr]">
-					<Header />
-					{isFetching ? <Loader /> : <Outlet />}
-				</div>
+				<HeroHeader />
+				<main className="min-h-screen max-w-screen pt-24">
+                    {isFetching ? <Loader /> : <Outlet />}
+                </main>
 				<Toaster richColors />
-				<TanStackRouterDevtools position="bottom-left" />
-				<ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
 				<Scripts />
 			</body>
 		</html>

@@ -2,7 +2,7 @@ import { authClient } from "@/lib/auth-client";
 import { QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import type { AppRouter } from "@relio-mono/api/routers/index";
+import type { AppRouter } from "@relio/api/routers/index";
 
 export const queryClient = new QueryClient();
 

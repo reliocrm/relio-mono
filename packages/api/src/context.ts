@@ -1,5 +1,5 @@
 import type { Context as HonoContext } from "hono";
-import { auth } from "@relio-mono/auth";
+import { auth } from "@relio/auth";
 
 export type CreateContextOptions = {
 	context: HonoContext;

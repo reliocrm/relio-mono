@@ -1,4 +1,5 @@
 import { hairlineWidth } from "nativewind/theme";
+import { Colors, DarkColors } from "./theme/colors";
 
 /** @type {import('tailwindcss').Config} */
 export const darkMode = "class";
@@ -10,46 +11,46 @@ export const presets = [require("nativewind/preset")];
 export const theme = {
 	extend: {
 		colors: {
-			background: "hsl(var(--background))",
-			foreground: "hsl(var(--foreground))",
+			// Use dark colors by default since dark mode is forced
+			background: DarkColors.background,
+			foreground: DarkColors.foreground,
 			card: {
-				DEFAULT: "hsl(var(--card))",
-				foreground: "hsl(var(--card-foreground))",
+				DEFAULT: DarkColors.card,
+				foreground: DarkColors.cardForeground,
 			},
 			popover: {
-				DEFAULT: "hsl(var(--popover))",
-				foreground: "hsl(var(--popover-foreground))",
+				DEFAULT: DarkColors.popover,
+				foreground: DarkColors.popoverForeground,
 			},
 			primary: {
-				DEFAULT: "hsl(var(--primary))",
-				foreground: "hsl(var(--primary-foreground))",
+				DEFAULT: DarkColors.primary,
+				foreground: DarkColors.primaryForeground,
 			},
 			secondary: {
-				DEFAULT: "hsl(var(--secondary))",
-				foreground: "hsl(var(--secondary-foreground))",
+				DEFAULT: DarkColors.secondary,
+				foreground: DarkColors.secondaryForeground,
 			},
 			muted: {
-				DEFAULT: "hsl(var(--muted))",
-				foreground: "hsl(var(--muted-foreground))",
+				DEFAULT: DarkColors.muted,
+				foreground: DarkColors.mutedForeground,
 			},
 			accent: {
-				DEFAULT: "hsl(var(--accent))",
-				foreground: "hsl(var(--accent-foreground))",
+				DEFAULT: DarkColors.accent,
+				foreground: DarkColors.accentForeground,
 			},
 			destructive: {
-				DEFAULT: "hsl(var(--destructive))",
-				foreground: "hsl(var(--destructive-foreground))",
+				DEFAULT: DarkColors.destructive,
+				foreground: DarkColors.destructiveForeground,
 			},
-			border: "hsl(var(--border))",
-			input: "hsl(var(--input))",
-			ring: "hsl(var(--ring))",
-			radius: "var(--radius)",
+			border: DarkColors.border,
+			input: DarkColors.input,
+			ring: DarkColors.ring,
 		},
 		borderRadius: {
-			xl: "calc(var(--radius) + 4px)",
-			lg: "var(--radius)",
-			md: "calc(var(--radius) - 2px)",
-			sm: "calc(var(--radius) - 4px)",
+			xl: "calc(0.625rem + 4px)",
+			lg: "0.625rem",
+			md: "calc(0.625rem - 2px)",
+			sm: "calc(0.625rem - 4px)",
 		},
 		borderWidth: {
 			hairline: hairlineWidth(),

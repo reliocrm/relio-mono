@@ -1,5 +1,5 @@
 {
-  "name": "@relio-mono/api",
+  "name": "@relio/api",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -29,7 +29,7 @@
     "@ai-sdk/google": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@relio-mono/auth": "workspace:*",
-    "@relio-mono/db": "workspace:*"
+    "@relio/auth": "workspace:*",
+    "@relio/db": "workspace:*"
   }
 }

@@ -1,30 +1,18 @@
 import "@/polyfills";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import {
-	DarkTheme,
-	DefaultTheme,
-	type Theme,
-	ThemeProvider,
-} from "@react-navigation/native";
+// import {
+// 	DarkTheme,
+// } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 import { queryClient } from "@/utils/trpc";
-import { NAV_THEME } from "@/lib/constants";
 import React, { useRef } from "react";
 import { useColorScheme } from "@/lib/use-color-scheme";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { setAndroidNavigationBar } from "@/lib/android-navigation-bar";
-
-const LIGHT_THEME: Theme = {
-	...DefaultTheme,
-	colors: NAV_THEME.light,
-};
-const DARK_THEME: Theme = {
-	...DarkTheme,
-	colors: NAV_THEME.dark,
-};
+import { ThemeProvider } from "@/theme/theme-provider";
 
 export const unstable_settings = {
 	initialRouteName: "(drawer)",
@@ -32,8 +20,17 @@ export const unstable_settings = {
 
 export default function RootLayout() {
 	const hasMounted = useRef(false);
-	const { colorScheme, isDarkColorScheme } = useColorScheme();
+	const { colorScheme } = useColorScheme();
 	const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
+
+	// const DARK_THEME_TRANSPARENT = React.useMemo(() => ({
+	// 	...DarkTheme,
+	// 	colors: {
+	// 		...DarkTheme.colors,
+	// 		background: 'transparent',
+	// 		card: 'transparent',
+	// 	},
+	// }), []);
 
 	useIsomorphicLayoutEffect(() => {
 		if (hasMounted.current) {
@@ -41,9 +38,10 @@ export default function RootLayout() {
 		}
 
 		if (Platform.OS === "web") {
+			document.documentElement.classList.add("dark");
 			document.documentElement.classList.add("bg-background");
 		}
-		setAndroidNavigationBar(colorScheme);
+		setAndroidNavigationBar("dark");
 		setIsColorSchemeLoaded(true);
 		hasMounted.current = true;
 	}, []);
@@ -53,8 +51,8 @@ export default function RootLayout() {
 	}
 	return (
 		<QueryClientProvider client={queryClient}>
-			<ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-				<StatusBar style={isDarkColorScheme ? "light" : "dark"} />
+			<ThemeProvider>
+				<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 				<GestureHandlerRootView style={{ flex: 1 }}>
 					<Stack>
 						<Stack.Screen name="(drawer)" options={{ headerShown: false }} />

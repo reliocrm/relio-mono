@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { trpcServer } from "@hono/trpc-server";
-import { createContext } from "@relio-mono/api/context";
-import { appRouter } from "@relio-mono/api/routers/index";
-import { auth } from "@relio-mono/auth";
+import { createContext } from "@relio/api/context";
+import { appRouter } from "@relio/api/routers/index";
+import { auth } from "@relio/auth";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -15,14 +15,34 @@ app.use(logger());
 app.use(
 	"/*",
 	cors({
-		origin: process.env.CORS_ORIGIN || "",
+        // Allow comma-separated origins via CORS_ORIGIN. If not provided, reflect the
+        // request origin (dev-friendly) so credentials work in local development.
+        origin: (requestOrigin) => {
+            const configured = (process.env.CORS_ORIGIN || "")
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+            if (!requestOrigin) return "";
+            if (configured.length === 0) return requestOrigin;
+            return configured.includes(requestOrigin) ? requestOrigin : "";
+        },
 		allowMethods: ["GET", "POST", "OPTIONS"],
 		allowHeaders: ["Content-Type", "Authorization"],
 		credentials: true,
 	}),
 );
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+    // Ensure an Origin header exists for native requests (React Native often omits it).
+    const original = c.req.raw;
+    const headers = new Headers(original.headers);
+    if (!headers.has("Origin")) {
+        // Prefer setting to the app scheme to match trustedOrigins
+        headers.set("Origin", "relio://");
+    }
+    const reqWithOrigin = new Request(original, { headers });
+    return auth.handler(reqWithOrigin);
+});
 
 app.use(
 	"/trpc/*",

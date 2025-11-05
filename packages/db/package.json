@@ -1,5 +1,5 @@
 {
-  "name": "@relio-mono/db",
+  "name": "@relio/db",
   "type": "module",
   "exports": {
     ".": {
@@ -12,7 +12,8 @@
     }
   },
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "migrate:users": "tsx src/scripts/migrate-users.ts"
   },
   "devDependencies": {
     "tsdown": "catalog:"

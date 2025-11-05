@@ -1,6 +1,6 @@
 import z from "zod";
 import { router, publicProcedure } from "../index";
-import { Todo } from "@relio-mono/db/models/todo.model";
+import { Todo } from "@relio/db/models/todo.model";
 
 export const todoRouter = router({
 	getAll: publicProcedure.query(async () => {
