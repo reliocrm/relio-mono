@@ -169,7 +169,7 @@ export function CreateViewSheet({
 					animate={{ x: 0 }}
 					exit={{ x: "100%" }}
 					transition={{ type: "spring", damping: 30, stiffness: 300 }}
-					className="absolute right-0 bottom-0 w-[400px] border-l shadow-xl z-50 flex flex-col pointer-events-auto"
+					className="absolute bg-accent right-0 bottom-0 w-[400px] border-l shadow-xl z-50 flex flex-col pointer-events-auto"
 					style={{
 						top: `${headerHeight * 2.2}px`,
 					}}

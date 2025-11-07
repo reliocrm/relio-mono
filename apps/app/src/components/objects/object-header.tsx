@@ -48,6 +48,7 @@ import {
 import { useToggleFavorite } from "@/hooks/favorites/use-toggle-favorite";
 import { IconStarFilled } from "@tabler/icons-react";
 import { CreateViewSheet } from "./create-view-sheet";
+import { ViewSettings } from "./view-settings";
 
 interface ObjectHeaderProps {
 	organizationSlug: string;
@@ -265,9 +266,27 @@ export function ObjectHeader({
 		);
 	};
 
+	const handleColumnDefsChange = React.useCallback(
+		(newColumnDefs: any[]) => {
+			if (!currentViewId) return;
+			updateView(
+				{
+					viewId: currentViewId,
+					columnDefs: newColumnDefs,
+				},
+				{
+					onSuccess: () => {
+						// Query will automatically refetch due to invalidation
+					},
+				}
+			);
+		},
+		[currentViewId, updateView]
+	);
+
 	return (
 		<div className="flex flex-col gap-2 p-2 border-b">
-			{/* View Selector */}
+			{/* View Selector and View Settings */}
 			<div className="flex items-center gap-2">
 				<Popover open={viewPopoverOpen} onOpenChange={setViewPopoverOpen}>
 					<PopoverTrigger asChild>
@@ -424,6 +443,13 @@ export function ObjectHeader({
 						</Command>
 					</PopoverContent>
 				</Popover>
+				{currentView && currentViewId && (
+					<ViewSettings
+						objectType={objectType}
+						columnDefs={currentView.columnDefs || []}
+						onColumnDefsChange={handleColumnDefsChange}
+					/>
+				)}
 			</div>
 			<CreateViewSheet
 				open={createViewSheetOpen}

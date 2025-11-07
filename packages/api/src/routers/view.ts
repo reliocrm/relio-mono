@@ -5,11 +5,15 @@ import { ObjectView, UserViewPreference } from "@relio/db/models/object.model";
 import { Organization } from "@relio/db/models/org.model";
 import { Contact } from "@relio/db/models/contact.model";
 import { Property } from "@relio/db/models/property.model";
+import { Company } from "@relio/db/models/company.model";
 import {
 	advancedFilterToMongoQuery,
 	buildSearchQuery,
 	combineFilterAndSearch,
 } from "../lib/filter-parser";
+import {
+	calculateAggregations,
+} from "../lib/aggregations";
 
 export const viewRouter = router({
 	getDefaultView: protectedProcedure
@@ -688,6 +692,163 @@ export const viewRouter = router({
 			});
 
 			return { success: true };
+		}),
+	getAggregationsForView: protectedProcedure
+		.input(
+			z.object({
+				organizationSlug: z.string(),
+				viewId: z.string(),
+				objectType: z.enum(["contact", "company", "property"]),
+				aggregations: z.record(
+					z.string(),
+					z.object({
+						type: z.enum([
+							"none",
+							"count-empty",
+							"count-filled",
+							"percent-empty",
+							"percent-filled",
+							"sum",
+							"avg",
+							"min",
+							"max",
+						]),
+						columnDef: z.any().optional(),
+					})
+				),
+				filters: z.any().optional(),
+				search: z.string().optional(),
+			})
+		)
+		.query(async ({ input }) => {
+			// Get organization by slug
+			const organization = await Organization.findOne({
+				slug: input.organizationSlug,
+			}).lean();
+
+			if (!organization) {
+				throw new Error("Organization not found");
+			}
+
+			const organizationId = organization._id;
+
+			// Get the view to apply filters
+			const viewId = new mongoose.Types.ObjectId(input.viewId);
+			const view = await ObjectView.findOne({
+				_id: viewId,
+				organizationId,
+			}).lean();
+
+			if (!view) {
+				throw new Error("View not found");
+			}
+
+			// Base query
+			const baseQuery: any = {
+				organizationId,
+				isDeleted: { $ne: true },
+			};
+
+			// Convert advanced filters to MongoDB query
+			let filterQuery: any = {};
+			if (input.filters) {
+				try {
+					filterQuery = advancedFilterToMongoQuery(input.filters);
+				} catch (error) {
+					console.error("Error parsing filters:", error);
+				}
+			}
+
+			// Build search query based on object type
+			let searchableFields: string[] = [];
+			if (input.objectType === "contact") {
+				searchableFields = ["firstName", "lastName", "email", "phone", "company"];
+			} else if (input.objectType === "property") {
+				searchableFields = ["name", "address", "propertyType", "status"];
+			}
+
+			const searchQuery = buildSearchQuery(input.search || "", searchableFields);
+
+			// Combine all queries
+			const combinedQuery = combineFilterAndSearch(filterQuery, searchQuery);
+			const query = Object.keys(combinedQuery).length > 0
+				? { ...baseQuery, ...combinedQuery }
+				: baseQuery;
+
+			// Get ALL records (not paginated) for aggregation calculations
+			let allRecords: any[] = [];
+			if (input.objectType === "contact") {
+				allRecords = await Contact.find(query).lean();
+			} else if (input.objectType === "property") {
+				allRecords = await Property.find(query).lean();
+			}
+			// TODO: Add company support when available
+
+			// Calculate aggregations using the utility
+			const results = calculateAggregations(allRecords, input.aggregations);
+
+			return results;
+		}),
+	batchDelete: protectedProcedure
+		.input(
+			z.object({
+				organizationSlug: z.string(),
+				objectType: z.enum(["contact", "company", "property"]),
+				recordIds: z.array(z.string()).min(1),
+			})
+		)
+		.mutation(async ({ input, ctx }) => {
+			const userIdString = ctx.session.user.id;
+			const userId = new mongoose.Types.ObjectId(userIdString);
+
+			// Get organization by slug
+			const organization = await Organization.findOne({
+				slug: input.organizationSlug,
+			}).lean();
+
+			if (!organization) {
+				throw new Error("Organization not found");
+			}
+
+			const organizationId = organization._id;
+
+			// Convert record IDs to ObjectIds
+			const recordObjectIds = input.recordIds.map(
+				(id) => new mongoose.Types.ObjectId(id)
+			);
+
+			// Build query to find records that belong to the organization and aren't already deleted
+			const query = {
+				_id: { $in: recordObjectIds },
+				organizationId,
+				isDeleted: { $ne: true },
+			};
+
+			// Perform soft delete based on object type
+			const updateData = {
+				isDeleted: true,
+				deletedAt: new Date(),
+				deletedBy: userId,
+				updatedAt: new Date(),
+			};
+
+			let deletedCount = 0;
+
+			if (input.objectType === "contact") {
+				const result = await Contact.updateMany(query, updateData);
+				deletedCount = result.modifiedCount;
+			} else if (input.objectType === "company") {
+				const result = await Company.updateMany(query, updateData);
+				deletedCount = result.modifiedCount;
+			} else if (input.objectType === "property") {
+				const result = await Property.updateMany(query, updateData);
+				deletedCount = result.modifiedCount;
+			}
+
+			return {
+				success: true,
+				deletedCount,
+			};
 		}),
 });
 
