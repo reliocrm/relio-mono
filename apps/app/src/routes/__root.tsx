@@ -10,16 +10,19 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import Header from "../components/header";
 import appCss from "../index.css?url";
 import type { QueryClient } from "@tanstack/react-query";
 import Loader from "@/components/loader";
+import { ThemeProvider } from "next-themes";
+import { EdgeStoreProvider } from "@relio/storage/provider";
 
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import type { AppRouter } from "@relio/api/routers/index";
+import type { TRPCClient } from "@trpc/client";
 export interface RouterAppContext {
 	trpc: TRPCOptionsProxy<AppRouter>;
 	queryClient: QueryClient;
+	trpcClient: TRPCClient<AppRouter>;
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
@@ -40,6 +43,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 			{
 				rel: "stylesheet",
 				href: appCss,
+				suppressHydrationWarning: true,
 			},
 		],
 	}),
@@ -50,17 +54,26 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 function RootDocument() {
 	const isFetching = useRouterState({ select: (s) => s.isLoading });
 	return (
-		<html lang="en" className="dark">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
 			</head>
-			<body>
-				<div className="grid h-svh grid-rows-[auto_1fr]">
-					{isFetching ? <Loader /> : <Outlet />}
-				</div>
-				<Toaster richColors />
-				<TanStackRouterDevtools position="bottom-left" />
-				<ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+			<body className="h-screen overflow-hidden">
+				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+					<EdgeStoreProvider>
+						<div className="grid h-svh grid-rows-[auto_1fr] bg-linear-to-b from-muted to-background overflow-hidden">
+							<Outlet />
+							{isFetching && (
+								<div className="fixed inset-0 flex items-center justify-center z-50 bg-background/80 backdrop-blur-sm">
+									<Loader />
+								</div>
+							)}
+						</div>
+						<Toaster richColors />
+						<TanStackRouterDevtools position="bottom-left" />
+						<ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+					</EdgeStoreProvider>
+				</ThemeProvider>
 				<Scripts />
 			</body>
 		</html>

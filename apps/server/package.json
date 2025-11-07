@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "@relio/server",
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
@@ -21,7 +21,8 @@
     "zod": "catalog:",
     "@relio/api": "workspace:*",
     "@relio/auth": "workspace:*",
-    "@relio/db": "workspace:*"
+    "@relio/db": "workspace:*",
+    "@relio/storage": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

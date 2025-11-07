@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
 import Loader from "./loader";
@@ -17,7 +18,14 @@ export default function SignInForm({
 	const navigate = useNavigate({
 		from: "/",
 	});
-	const { isPending } = authClient.useSession();
+	const { data: session, isPending } = authClient.useSession();
+
+	useEffect(() => {
+		if (!isPending && session?.user) {
+			console.log("[SignInForm] User already authenticated, redirecting to /organizations");
+			navigate({ to: "/organizations" });
+		}
+	}, [session, isPending, navigate]);
 
 	const form = useForm({
 		defaultValues: {
@@ -33,7 +41,7 @@ export default function SignInForm({
 				{
 					onSuccess: () => {
 							navigate({
-								to: "/",
+								to: "/organizations",
 							});
 						toast.success("Sign in successful");
 					},

@@ -1,0 +1,35 @@
+{
+	"name": "@relio/storage",
+	"version": "0.0.0",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./index.ts",
+			"default": "./index.ts"
+		},
+		"./provider": {
+			"types": "./provider/index.ts",
+			"default": "./provider/index.ts"
+		},
+		"./types": {
+			"types": "./types.ts",
+			"default": "./types.ts"
+		}
+	},
+	"main": "./index.ts",
+	"types": "./index.ts",
+	"scripts": {
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "3.437.0",
+		"@aws-sdk/s3-request-presigner": "3.437.0",
+		"@edgestore/react": "^0.5.2",
+		"@edgestore/server": "^0.5.2",
+		"zod": "^3.25.67"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@types/node": "^22.13.10"
+	}
+}

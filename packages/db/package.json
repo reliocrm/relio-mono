@@ -13,10 +13,12 @@
   },
   "scripts": {
     "build": "tsdown",
-    "migrate:users": "tsx src/scripts/migrate-users.ts"
+    "migrate:users": "tsx src/scripts/migrate-users.ts",
+    "migrate:properties": "tsx src/scripts/migrate-properties.ts"
   },
   "devDependencies": {
-    "tsdown": "catalog:"
+    "tsdown": "catalog:",
+    "tsx": "^4.19.2"
   },
   "peerDependencies": {
     "typescript": "^5"

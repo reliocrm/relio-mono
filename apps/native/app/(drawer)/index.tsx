@@ -2,6 +2,8 @@ import { authClient } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollView, Text, TouchableOpacity, View, Linking } from "react-native";
 import Constants from "expo-constants";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 import { Container } from "@/components/container";
 import { SignIn } from "@/components/sign-in";
@@ -11,9 +13,19 @@ import { queryClient, trpc } from "@/utils/trpc";
 import { BackgroundGradient } from "@/components/background-gradient";
 
 export default function Home() {
+	const router = useRouter();
 	const healthCheck = useQuery(trpc.healthCheck.queryOptions());
 	const privateData = useQuery(trpc.privateData.queryOptions());
 	const { data: session } = authClient.useSession();
+
+	// Redirect authenticated users to organizations screen
+	useFocusEffect(
+		useCallback(() => {
+			if (session?.user) {
+				router.replace("/(drawer)/organizations");
+			}
+		}, [session?.user, router])
+	);
 
 	function resolveWebURL(): string | undefined {
 		const explicit = process.env.EXPO_PUBLIC_WEB_URL || process.env.EXPO_PUBLIC_SERVER_URL;
@@ -73,7 +85,7 @@ export default function Home() {
 								<View className="flex-row items-center gap-2">
 									<View
 										className={`h-3 w-3 rounded-full ${
-											healthCheck.data ? "bg-green-500" : "bg-red-500"
+											healthCheck.data ? "bg-green-400" : "bg-red-500"
 										}`}
 									/>
 									<Text className="text-muted-foreground">

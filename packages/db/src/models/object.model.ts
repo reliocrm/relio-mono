@@ -90,7 +90,9 @@ const objectViewSchema = new Schema(
       { fields: { organizationId: 1 } },
       { fields: { organizationId: 1, objectType: 1 } },
       { fields: { organizationId: 1, createdBy: 1 } }
-    ]
+      // Note: Application-level logic ensures only one default view per organization/objectType
+      // See: packages/api/src/routers/organization.ts and any future mutations that set isDefault
+    ],
   }
 );
 

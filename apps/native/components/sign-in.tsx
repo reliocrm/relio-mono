@@ -60,6 +60,7 @@ export function SignIn() {
 					setEmail("");
 					setPassword("");
 					queryClient.refetchQueries();
+					// Navigate will be handled by the index screen redirect
 				},
 				onFinished: () => {
 					setIsLoading(false);

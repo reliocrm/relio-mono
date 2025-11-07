@@ -9,54 +9,307 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
+import { Route as SlugIndexRouteImport } from './routes/$slug/index'
+import { Route as OrganizationsCreateRouteImport } from './routes/organizations/create'
+import { Route as NoteNoteIdRouteImport } from './routes/note/$noteId'
+import { Route as SlugTasksRouteImport } from './routes/$slug/tasks'
+import { Route as SlugNotesRouteImport } from './routes/$slug/notes'
+import { Route as SlugInviteRouteImport } from './routes/$slug/invite'
+import { Route as SlugDashboardRouteImport } from './routes/$slug/dashboard'
 import { Route as authLoginIndexRouteImport } from './routes/(auth)/login/index'
+import { Route as SlugPropertiesIndexRouteImport } from './routes/$slug/properties/index'
+import { Route as SlugContactsIndexRouteImport } from './routes/$slug/contacts/index'
+import { Route as SlugCompaniesIndexRouteImport } from './routes/$slug/companies/index'
+import { Route as SlugPropertiesViewViewIdRouteImport } from './routes/$slug/properties/view/$viewId'
+import { Route as SlugContactsViewViewIdRouteImport } from './routes/$slug/contacts/view/$viewId'
+import { Route as SlugCompaniesViewViewIdRouteImport } from './routes/$slug/companies/view/$viewId'
 
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizationsIndexRoute = OrganizationsIndexRouteImport.update({
+  id: '/organizations/',
+  path: '/organizations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SlugIndexRoute = SlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SlugRoute,
+} as any)
+const OrganizationsCreateRoute = OrganizationsCreateRouteImport.update({
+  id: '/organizations/create',
+  path: '/organizations/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NoteNoteIdRoute = NoteNoteIdRouteImport.update({
+  id: '/note/$noteId',
+  path: '/note/$noteId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SlugTasksRoute = SlugTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugNotesRoute = SlugNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugInviteRoute = SlugInviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugDashboardRoute = SlugDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => SlugRoute,
 } as any)
 const authLoginIndexRoute = authLoginIndexRouteImport.update({
   id: '/(auth)/login/',
   path: '/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SlugPropertiesIndexRoute = SlugPropertiesIndexRouteImport.update({
+  id: '/properties/',
+  path: '/properties/',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugContactsIndexRoute = SlugContactsIndexRouteImport.update({
+  id: '/contacts/',
+  path: '/contacts/',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugCompaniesIndexRoute = SlugCompaniesIndexRouteImport.update({
+  id: '/companies/',
+  path: '/companies/',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugPropertiesViewViewIdRoute =
+  SlugPropertiesViewViewIdRouteImport.update({
+    id: '/properties/view/$viewId',
+    path: '/properties/view/$viewId',
+    getParentRoute: () => SlugRoute,
+  } as any)
+const SlugContactsViewViewIdRoute = SlugContactsViewViewIdRouteImport.update({
+  id: '/contacts/view/$viewId',
+  path: '/contacts/view/$viewId',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugCompaniesViewViewIdRoute = SlugCompaniesViewViewIdRouteImport.update({
+  id: '/companies/view/$viewId',
+  path: '/companies/view/$viewId',
+  getParentRoute: () => SlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRouteWithChildren
+  '/$slug/dashboard': typeof SlugDashboardRoute
+  '/$slug/invite': typeof SlugInviteRoute
+  '/$slug/notes': typeof SlugNotesRoute
+  '/$slug/tasks': typeof SlugTasksRoute
+  '/note/$noteId': typeof NoteNoteIdRoute
+  '/organizations/create': typeof OrganizationsCreateRoute
+  '/$slug/': typeof SlugIndexRoute
+  '/organizations': typeof OrganizationsIndexRoute
+  '/$slug/companies': typeof SlugCompaniesIndexRoute
+  '/$slug/contacts': typeof SlugContactsIndexRoute
+  '/$slug/properties': typeof SlugPropertiesIndexRoute
   '/login': typeof authLoginIndexRoute
+  '/$slug/companies/view/$viewId': typeof SlugCompaniesViewViewIdRoute
+  '/$slug/contacts/view/$viewId': typeof SlugContactsViewViewIdRoute
+  '/$slug/properties/view/$viewId': typeof SlugPropertiesViewViewIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$slug/dashboard': typeof SlugDashboardRoute
+  '/$slug/invite': typeof SlugInviteRoute
+  '/$slug/notes': typeof SlugNotesRoute
+  '/$slug/tasks': typeof SlugTasksRoute
+  '/note/$noteId': typeof NoteNoteIdRoute
+  '/organizations/create': typeof OrganizationsCreateRoute
+  '/$slug': typeof SlugIndexRoute
+  '/organizations': typeof OrganizationsIndexRoute
+  '/$slug/companies': typeof SlugCompaniesIndexRoute
+  '/$slug/contacts': typeof SlugContactsIndexRoute
+  '/$slug/properties': typeof SlugPropertiesIndexRoute
   '/login': typeof authLoginIndexRoute
+  '/$slug/companies/view/$viewId': typeof SlugCompaniesViewViewIdRoute
+  '/$slug/contacts/view/$viewId': typeof SlugContactsViewViewIdRoute
+  '/$slug/properties/view/$viewId': typeof SlugPropertiesViewViewIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRouteWithChildren
+  '/$slug/dashboard': typeof SlugDashboardRoute
+  '/$slug/invite': typeof SlugInviteRoute
+  '/$slug/notes': typeof SlugNotesRoute
+  '/$slug/tasks': typeof SlugTasksRoute
+  '/note/$noteId': typeof NoteNoteIdRoute
+  '/organizations/create': typeof OrganizationsCreateRoute
+  '/$slug/': typeof SlugIndexRoute
+  '/organizations/': typeof OrganizationsIndexRoute
+  '/$slug/companies/': typeof SlugCompaniesIndexRoute
+  '/$slug/contacts/': typeof SlugContactsIndexRoute
+  '/$slug/properties/': typeof SlugPropertiesIndexRoute
   '/(auth)/login/': typeof authLoginIndexRoute
+  '/$slug/companies/view/$viewId': typeof SlugCompaniesViewViewIdRoute
+  '/$slug/contacts/view/$viewId': typeof SlugContactsViewViewIdRoute
+  '/$slug/properties/view/$viewId': typeof SlugPropertiesViewViewIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login'
+  fullPaths:
+    | '/'
+    | '/$slug'
+    | '/$slug/dashboard'
+    | '/$slug/invite'
+    | '/$slug/notes'
+    | '/$slug/tasks'
+    | '/note/$noteId'
+    | '/organizations/create'
+    | '/$slug/'
+    | '/organizations'
+    | '/$slug/companies'
+    | '/$slug/contacts'
+    | '/$slug/properties'
+    | '/login'
+    | '/$slug/companies/view/$viewId'
+    | '/$slug/contacts/view/$viewId'
+    | '/$slug/properties/view/$viewId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login'
-  id: '__root__' | '/' | '/(auth)/login/'
+  to:
+    | '/'
+    | '/$slug/dashboard'
+    | '/$slug/invite'
+    | '/$slug/notes'
+    | '/$slug/tasks'
+    | '/note/$noteId'
+    | '/organizations/create'
+    | '/$slug'
+    | '/organizations'
+    | '/$slug/companies'
+    | '/$slug/contacts'
+    | '/$slug/properties'
+    | '/login'
+    | '/$slug/companies/view/$viewId'
+    | '/$slug/contacts/view/$viewId'
+    | '/$slug/properties/view/$viewId'
+  id:
+    | '__root__'
+    | '/'
+    | '/$slug'
+    | '/$slug/dashboard'
+    | '/$slug/invite'
+    | '/$slug/notes'
+    | '/$slug/tasks'
+    | '/note/$noteId'
+    | '/organizations/create'
+    | '/$slug/'
+    | '/organizations/'
+    | '/$slug/companies/'
+    | '/$slug/contacts/'
+    | '/$slug/properties/'
+    | '/(auth)/login/'
+    | '/$slug/companies/view/$viewId'
+    | '/$slug/contacts/view/$viewId'
+    | '/$slug/properties/view/$viewId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SlugRoute: typeof SlugRouteWithChildren
+  NoteNoteIdRoute: typeof NoteNoteIdRoute
+  OrganizationsCreateRoute: typeof OrganizationsCreateRoute
+  OrganizationsIndexRoute: typeof OrganizationsIndexRoute
   authLoginIndexRoute: typeof authLoginIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/organizations/': {
+      id: '/organizations/'
+      path: '/organizations'
+      fullPath: '/organizations'
+      preLoaderRoute: typeof OrganizationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$slug/': {
+      id: '/$slug/'
+      path: '/'
+      fullPath: '/$slug/'
+      preLoaderRoute: typeof SlugIndexRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/organizations/create': {
+      id: '/organizations/create'
+      path: '/organizations/create'
+      fullPath: '/organizations/create'
+      preLoaderRoute: typeof OrganizationsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/note/$noteId': {
+      id: '/note/$noteId'
+      path: '/note/$noteId'
+      fullPath: '/note/$noteId'
+      preLoaderRoute: typeof NoteNoteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$slug/tasks': {
+      id: '/$slug/tasks'
+      path: '/tasks'
+      fullPath: '/$slug/tasks'
+      preLoaderRoute: typeof SlugTasksRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/notes': {
+      id: '/$slug/notes'
+      path: '/notes'
+      fullPath: '/$slug/notes'
+      preLoaderRoute: typeof SlugNotesRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/invite': {
+      id: '/$slug/invite'
+      path: '/invite'
+      fullPath: '/$slug/invite'
+      preLoaderRoute: typeof SlugInviteRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/dashboard': {
+      id: '/$slug/dashboard'
+      path: '/dashboard'
+      fullPath: '/$slug/dashboard'
+      preLoaderRoute: typeof SlugDashboardRouteImport
+      parentRoute: typeof SlugRoute
     }
     '/(auth)/login/': {
       id: '/(auth)/login/'
@@ -65,11 +318,87 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authLoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$slug/properties/': {
+      id: '/$slug/properties/'
+      path: '/properties'
+      fullPath: '/$slug/properties'
+      preLoaderRoute: typeof SlugPropertiesIndexRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/contacts/': {
+      id: '/$slug/contacts/'
+      path: '/contacts'
+      fullPath: '/$slug/contacts'
+      preLoaderRoute: typeof SlugContactsIndexRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/companies/': {
+      id: '/$slug/companies/'
+      path: '/companies'
+      fullPath: '/$slug/companies'
+      preLoaderRoute: typeof SlugCompaniesIndexRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/properties/view/$viewId': {
+      id: '/$slug/properties/view/$viewId'
+      path: '/properties/view/$viewId'
+      fullPath: '/$slug/properties/view/$viewId'
+      preLoaderRoute: typeof SlugPropertiesViewViewIdRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/contacts/view/$viewId': {
+      id: '/$slug/contacts/view/$viewId'
+      path: '/contacts/view/$viewId'
+      fullPath: '/$slug/contacts/view/$viewId'
+      preLoaderRoute: typeof SlugContactsViewViewIdRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/companies/view/$viewId': {
+      id: '/$slug/companies/view/$viewId'
+      path: '/companies/view/$viewId'
+      fullPath: '/$slug/companies/view/$viewId'
+      preLoaderRoute: typeof SlugCompaniesViewViewIdRouteImport
+      parentRoute: typeof SlugRoute
+    }
   }
 }
 
+interface SlugRouteChildren {
+  SlugDashboardRoute: typeof SlugDashboardRoute
+  SlugInviteRoute: typeof SlugInviteRoute
+  SlugNotesRoute: typeof SlugNotesRoute
+  SlugTasksRoute: typeof SlugTasksRoute
+  SlugIndexRoute: typeof SlugIndexRoute
+  SlugCompaniesIndexRoute: typeof SlugCompaniesIndexRoute
+  SlugContactsIndexRoute: typeof SlugContactsIndexRoute
+  SlugPropertiesIndexRoute: typeof SlugPropertiesIndexRoute
+  SlugCompaniesViewViewIdRoute: typeof SlugCompaniesViewViewIdRoute
+  SlugContactsViewViewIdRoute: typeof SlugContactsViewViewIdRoute
+  SlugPropertiesViewViewIdRoute: typeof SlugPropertiesViewViewIdRoute
+}
+
+const SlugRouteChildren: SlugRouteChildren = {
+  SlugDashboardRoute: SlugDashboardRoute,
+  SlugInviteRoute: SlugInviteRoute,
+  SlugNotesRoute: SlugNotesRoute,
+  SlugTasksRoute: SlugTasksRoute,
+  SlugIndexRoute: SlugIndexRoute,
+  SlugCompaniesIndexRoute: SlugCompaniesIndexRoute,
+  SlugContactsIndexRoute: SlugContactsIndexRoute,
+  SlugPropertiesIndexRoute: SlugPropertiesIndexRoute,
+  SlugCompaniesViewViewIdRoute: SlugCompaniesViewViewIdRoute,
+  SlugContactsViewViewIdRoute: SlugContactsViewViewIdRoute,
+  SlugPropertiesViewViewIdRoute: SlugPropertiesViewViewIdRoute,
+}
+
+const SlugRouteWithChildren = SlugRoute._addFileChildren(SlugRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SlugRoute: SlugRouteWithChildren,
+  NoteNoteIdRoute: NoteNoteIdRoute,
+  OrganizationsCreateRoute: OrganizationsCreateRoute,
+  OrganizationsIndexRoute: OrganizationsIndexRoute,
   authLoginIndexRoute: authLoginIndexRoute,
 }
 export const routeTree = rootRouteImport

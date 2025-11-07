@@ -6,7 +6,12 @@ import { HeaderButton } from "@/components/header-button";
 
 const DrawerLayout = () => {
 	return (
-		<Drawer>
+		<Drawer
+			screenOptions={{
+				headerShown: false,
+				drawerType: "slide",
+			}}
+		>
 			<Drawer.Screen
 				name="index"
 				options={{
@@ -54,6 +59,27 @@ const DrawerLayout = () => {
 							color={color}
 						/>
 					),
+				}}
+			/>
+			<Drawer.Screen
+				name="organizations"
+				options={{
+					headerShown: false,
+					drawerLabel: "Organizations",
+					drawerIcon: ({ size, color }) => (
+						<Ionicons
+							name="business-outline"
+							size={size}
+							color={color}
+						/>
+					),
+				}}
+			/>
+			<Drawer.Screen
+				name="[slug]"
+				options={{
+					headerShown: false,
+					drawerItemStyle: { display: "none" },
 				}}
 			/>
 		</Drawer>
