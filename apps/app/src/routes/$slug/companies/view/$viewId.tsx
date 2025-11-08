@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ObjectHeader } from "@/components/objects/object-header";
+import { ObjectHeaderWithFilters } from "@/components/objects/object-header-with-filters";
 import { ObjectTableView } from "@/components/objects/object-table-view";
 
 export const Route = createFileRoute("/$slug/companies/view/$viewId")({
@@ -11,7 +11,7 @@ function CompaniesViewComponent() {
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden">
-			<ObjectHeader 
+			<ObjectHeaderWithFilters 
 				organizationSlug={params.slug} 
 				objectType="company" 
 				currentViewId={params.viewId} 

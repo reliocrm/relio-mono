@@ -100,7 +100,7 @@ export const viewRouter = router({
 				organizationSlug: z.string(),
 				viewId: z.string(),
 				page: z.number().min(1).default(1),
-				limit: z.number().min(1).max(100).default(50),
+				limit: z.number().min(1).max(100).default(100),
 				filters: z.any().optional(), // AdvancedFilter structure
 				search: z.string().optional(),
 			})
@@ -136,12 +136,30 @@ export const viewRouter = router({
 
 			// Convert advanced filters to MongoDB query
 			let filterQuery: any = {};
+			
+			// First, apply filters from the view itself (saved filters)
+			if (view.filters) {
+				try {
+					filterQuery = advancedFilterToMongoQuery(view.filters);
+				} catch (error) {
+					console.error("Error parsing view filters:", error);
+					// Continue with empty filter query if parsing fails
+				}
+			}
+			
+			// Then, apply any additional filters from the input (runtime filters)
 			if (input.filters) {
 				try {
-					filterQuery = advancedFilterToMongoQuery(input.filters);
+					const inputFilterQuery = advancedFilterToMongoQuery(input.filters);
+					// Combine view filters with input filters using AND logic
+					if (Object.keys(filterQuery).length > 0 && Object.keys(inputFilterQuery).length > 0) {
+						filterQuery = { $and: [filterQuery, inputFilterQuery] };
+					} else if (Object.keys(inputFilterQuery).length > 0) {
+						filterQuery = inputFilterQuery;
+					}
 				} catch (error) {
-					console.error("Error parsing filters:", error);
-					// Continue with empty filter query if parsing fails
+					console.error("Error parsing input filters:", error);
+					// Continue with existing filter query if parsing fails
 				}
 			}
 
@@ -196,7 +214,9 @@ export const viewRouter = router({
 				organizationSlug: z.string(),
 				viewId: z.string(),
 				page: z.number().min(1).default(1),
-				limit: z.number().min(1).max(100).default(50),
+				limit: z.number().min(1).max(100).default(100),
+				filters: z.any().optional(), // AdvancedFilter structure
+				search: z.string().optional(),
 			})
 		)
 		.query(async ({ input }) => {
@@ -222,28 +242,52 @@ export const viewRouter = router({
 				throw new Error("View not found");
 			}
 
-			// Build query based on view filters
-			const query: any = {
+			// Base query
+			const baseQuery: any = {
 				organizationId,
 				isDeleted: { $ne: true },
 			};
 
-			// Apply filters from view if they exist
-			if (view.filters && Array.isArray(view.filters) && view.filters.length > 0) {
-				// This is a simplified version - you may need to handle more complex filter logic
-				view.filters.forEach((filter: any) => {
-					if (filter.field && filter.value !== undefined) {
-						if (filter.operator === "equals") {
-							query[filter.field] = filter.value;
-						} else if (filter.operator === "contains") {
-							query[filter.field] = { $regex: filter.value, $options: "i" };
-						}
-						// Add more filter operators as needed
+			// Convert advanced filters to MongoDB query
+			let filterQuery: any = {};
+			
+			// First, apply filters from the view itself (saved filters)
+			if (view.filters) {
+				try {
+					filterQuery = advancedFilterToMongoQuery(view.filters);
+				} catch (error) {
+					console.error("Error parsing view filters:", error);
+					// Continue with empty filter query if parsing fails
+				}
+			}
+			
+			// Then, apply any additional filters from the input (runtime filters)
+			if (input.filters) {
+				try {
+					const inputFilterQuery = advancedFilterToMongoQuery(input.filters);
+					// Combine view filters with input filters using AND logic
+					if (Object.keys(filterQuery).length > 0 && Object.keys(inputFilterQuery).length > 0) {
+						filterQuery = { $and: [filterQuery, inputFilterQuery] };
+					} else if (Object.keys(inputFilterQuery).length > 0) {
+						filterQuery = inputFilterQuery;
 					}
-				});
+				} catch (error) {
+					console.error("Error parsing input filters:", error);
+					// Continue with existing filter query if parsing fails
+				}
 			}
 
-			// Get total count
+			// Build search query
+			const searchableFields = ["name", "propertyType", "status", "market", "listingId"];
+			const searchQuery = buildSearchQuery(input.search || "", searchableFields);
+
+			// Combine all queries
+			const combinedQuery = combineFilterAndSearch(filterQuery, searchQuery);
+			const query = Object.keys(combinedQuery).length > 0
+				? { ...baseQuery, ...combinedQuery }
+				: baseQuery;
+
+			// Get total count (before pagination)
 			const total = await Property.countDocuments(query);
 
 			// Calculate pagination
@@ -270,6 +314,120 @@ export const viewRouter = router({
 
 			return {
 				properties,
+				pagination: {
+					page,
+					limit,
+					total,
+					totalPages,
+				},
+			};
+		}),
+	getCompaniesForView: protectedProcedure
+		.input(
+			z.object({
+				organizationSlug: z.string(),
+				viewId: z.string(),
+				page: z.number().min(1).default(1),
+				limit: z.number().min(1).max(100).default(100),
+				filters: z.any().optional(), // AdvancedFilter structure
+				search: z.string().optional(),
+			})
+		)
+		.query(async ({ input }) => {
+			// Get organization by slug
+			const organization = await Organization.findOne({
+				slug: input.organizationSlug,
+			}).lean();
+
+			if (!organization) {
+				throw new Error("Organization not found");
+			}
+
+			const organizationId = organization._id;
+
+			// Get the view to apply filters
+			const viewId = new mongoose.Types.ObjectId(input.viewId);
+			const view = await ObjectView.findOne({
+				_id: viewId,
+				organizationId,
+			}).lean();
+
+			if (!view) {
+				throw new Error("View not found");
+			}
+
+			// Base query
+			const baseQuery: any = {
+				organizationId,
+				isDeleted: { $ne: true },
+			};
+
+			// Convert advanced filters to MongoDB query
+			let filterQuery: any = {};
+			
+			// First, apply filters from the view itself (saved filters)
+			if (view.filters) {
+				try {
+					filterQuery = advancedFilterToMongoQuery(view.filters);
+				} catch (error) {
+					console.error("Error parsing view filters:", error);
+					// Continue with empty filter query if parsing fails
+				}
+			}
+			
+			// Then, apply any additional filters from the input (runtime filters)
+			if (input.filters) {
+				try {
+					const inputFilterQuery = advancedFilterToMongoQuery(input.filters);
+					// Combine view filters with input filters using AND logic
+					if (Object.keys(filterQuery).length > 0 && Object.keys(inputFilterQuery).length > 0) {
+						filterQuery = { $and: [filterQuery, inputFilterQuery] };
+					} else if (Object.keys(inputFilterQuery).length > 0) {
+						filterQuery = inputFilterQuery;
+					}
+				} catch (error) {
+					console.error("Error parsing input filters:", error);
+					// Continue with existing filter query if parsing fails
+				}
+			}
+
+			// Build search query
+			const searchableFields = ["name", "website", "industry", "email", "description"];
+			const searchQuery = buildSearchQuery(input.search || "", searchableFields);
+
+			// Combine all queries
+			const combinedQuery = combineFilterAndSearch(filterQuery, searchQuery);
+			const query = Object.keys(combinedQuery).length > 0
+				? { ...baseQuery, ...combinedQuery }
+				: baseQuery;
+
+			// Get total count (before pagination)
+			const total = await Company.countDocuments(query);
+
+			// Calculate pagination
+			const page = input.page || 1;
+			const limit = input.limit || 50;
+			const skip = (page - 1) * limit;
+			const totalPages = Math.ceil(total / limit);
+
+			// Apply sorting if specified in view
+			let sortQuery: any = {};
+			if (view.sortBy) {
+				sortQuery[view.sortBy] = view.sortDirection === "desc" ? -1 : 1;
+			} else {
+				// Default sort by createdAt descending
+				sortQuery.createdAt = -1;
+			}
+
+			// Get paginated companies
+			const companies = await Company.find(query)
+				.sort(sortQuery)
+				.skip(skip)
+				.limit(limit)
+				.lean();
+
+			return {
+				companies,
 				pagination: {
 					page,
 					limit,

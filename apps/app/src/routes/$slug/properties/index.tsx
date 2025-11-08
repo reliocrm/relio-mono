@@ -59,3 +59,4 @@ function PropertiesIndexComponent() {
 	return <Loader />; // Will redirect via useEffect
 }
 
+

@@ -63,6 +63,7 @@ interface TableViewProps {
 	onColumnDefsChange?: (columnDefs: Array<{ field: string; headerName: string; width?: number; type?: string; visible?: boolean }>) => void; // Callback when columnDefs change
 	onLoadMore?: () => void; // Callback to load more data for infinite scroll
 	isLoadingMore?: boolean; // Loading state for infinite scroll
+	hasReachedEnd?: boolean; // Flag to indicate no more data available from backend
 }
 
 export function TableView({
@@ -80,6 +81,7 @@ export function TableView({
 	onColumnDefsChange,
 	onLoadMore,
 	isLoadingMore = false,
+	hasReachedEnd = false,
 }: TableViewProps) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	
@@ -136,9 +138,15 @@ export function TableView({
 	
 	// Sync loading ref with isLoadingMore prop
 	React.useEffect(() => {
+		console.log("🔄 Syncing isLoadingMoreRef:", {
+			prevRef: isLoadingMoreRef.current,
+			newProp: isLoadingMore,
+			dataLength: data.length,
+			totalCount
+		});
 		// Always sync the ref with the prop value
 		isLoadingMoreRef.current = isLoadingMore;
-	}, [isLoadingMore]);
+	}, [isLoadingMore, data.length, totalCount]);
 	
 	// Reset initialization flag and scroll position when data resets (e.g., navigating to new view)
 	React.useEffect(() => {
@@ -417,7 +425,7 @@ export function TableView({
 			enablePinning: false,
 			size: 200, // Default size, will be adjusted to fill remaining space
 			minSize: 150,
-			maxSize: Infinity,
+			maxSize: 2000, // Use a large but finite number instead of Infinity
 		};
 		result.push(addColumnColumn);
 
@@ -511,7 +519,31 @@ export function TableView({
 			const isNearBottom = distanceFromBottom <= (threshold + footerHeight);
 			
 			// Check if there's more data to load
-			const hasMore = totalCount === undefined || data.length < totalCount;
+			// Use hasReachedEnd flag as the primary indicator - if backend returned 0 results, we're done
+			// Secondary check: if we have total count and have reached it
+			const hasMore = !hasReachedEnd && (totalCount === undefined || data.length < totalCount);
+			
+			console.log("📏 HasMore calculation:", {
+				hasMore,
+				hasReachedEnd,
+				dataLength: data.length,
+				totalCount,
+				difference: totalCount !== undefined ? totalCount - data.length : "unknown"
+			});
+			
+			// Debug logging for infinite scroll (only when near bottom)
+			if (isNearBottom) {
+				console.log("🔄 Near bottom - scroll check:", {
+					isNearBottom,
+					hasMore,
+					dataLength: data.length,
+					totalCount,
+					isLoadingMore,
+					isLoadingMoreRef: isLoadingMoreRef.current,
+					distanceFromBottom,
+					threshold: threshold + footerHeight
+				});
+			}
 			
 			// On initial mount, only trigger if we actually need scrolling (scrollHeight > clientHeight)
 			// This prevents premature loading when navigating to a new view where content fits in viewport
@@ -530,12 +562,52 @@ export function TableView({
 				return;
 			}
 			
-			if (isNearBottom && hasMore) {
+			// Additional safeguards
+			const hasExactOrMoreData = totalCount !== undefined && data.length >= totalCount;
+			
+			if (hasReachedEnd) {
+				console.log("🛑 HasReachedEnd flag is true - not loading more:", {
+					hasReachedEnd,
+					dataLength: data.length,
+					totalCount
+				});
+				return;
+			}
+			
+			if (hasExactOrMoreData) {
+				console.log("🛑 Already have all data, not loading more:", {
+					dataLength: data.length,
+					totalCount,
+					hasMore,
+					hasExactOrMoreData
+				});
+				return;
+			}
+
+			if (isNearBottom && hasMore && !isLoadingMoreRef.current) {
+				console.log("🚀 TRIGGERING LOAD MORE:", {
+					dataLength: data.length,
+					totalCount,
+					page: "unknown", // We don't have access to page here
+					isLoadingMore,
+					isLoadingMoreRef: isLoadingMoreRef.current
+				});
 				// Set ref to prevent multiple simultaneous calls
 				// The prop will update when the query starts loading
 				isLoadingMoreRef.current = true;
 				currentOnLoadMore();
 				// Note: isLoadingMoreRef will be reset by the useEffect when isLoadingMore prop becomes false
+			} else if (isNearBottom && !hasMore) {
+				console.log("🛑 Near bottom but no more data to load:", {
+					dataLength: data.length,
+					totalCount,
+					hasMore
+				});
+			} else if (isNearBottom && isLoadingMoreRef.current) {
+				console.log("⏳ Near bottom but already loading:", {
+					isLoadingMore,
+					isLoadingMoreRef: isLoadingMoreRef.current
+				});
 			}
 		};
 
@@ -560,7 +632,7 @@ export function TableView({
 			container.removeEventListener("scroll", handleScroll);
 			resizeObserver.disconnect();
 		};
-	}, [data, totalCount, isLoadingMore]); // Re-run when data or loading state changes (onLoadMore is accessed via ref)
+	}, [data, totalCount, isLoadingMore, hasReachedEnd]); // Re-run when data, loading state, or end flag changes (onLoadMore is accessed via ref)
 
 	// Calculate and update "add-column" column width to fill remaining space
 	React.useEffect(() => {

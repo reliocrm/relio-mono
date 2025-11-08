@@ -28,8 +28,14 @@ export function ObjectTableView({
 	const [selectedRows, setSelectedRows] = React.useState<Set<string>>(new Set());
 	const [columnAggregations, setColumnAggregations] = React.useState<Record<string, string>>({});
 	const [page, setPage] = React.useState(1);
+	const [hasReachedEnd, setHasReachedEnd] = React.useState(false);
+	
+	// Track page changes
+	React.useEffect(() => {
+		console.log("📄 Page state changed to:", page);
+	}, [page]);
 	const [accumulatedData, setAccumulatedData] = React.useState<TableData[]>([]);
-	const pageSize = 50;
+	const pageSize = 100;
 
 	// Fetch view configuration
 	const viewQuery = useQuery(
@@ -57,6 +63,16 @@ export function ObjectTableView({
 			limit: pageSize,
 		}),
 		enabled: objectType === "property" && !!viewId,
+	});
+
+	const companiesQuery = useQuery({
+		...trpc.view.getCompaniesForView.queryOptions({
+			organizationSlug,
+			viewId,
+			page,
+			limit: pageSize,
+		}),
+		enabled: objectType === "company" && !!viewId,
 	});
 
 	// Get base columns for object type
@@ -113,6 +129,13 @@ export function ObjectTableView({
 
 	// Track the viewId that the accumulated data belongs to
 	const accumulatedDataViewIdRef = React.useRef<string>(viewId);
+	
+	// Track the filters to detect when they change
+	// Initialize with empty string to detect first real filter change
+	const previousFiltersRef = React.useRef<string>("");
+	
+	// Track when filters changed to ensure we only use fresh data
+	const filterChangeTimestampRef = React.useRef<number>(0);
 
 	// Reset accumulated data when viewId changes
 	React.useEffect(() => {
@@ -120,8 +143,35 @@ export function ObjectTableView({
 			accumulatedDataViewIdRef.current = viewId;
 			setAccumulatedData([]);
 			setPage(1);
+			setHasReachedEnd(false); // Reset end flag when changing views
+			console.log("🔄 ViewId changed - resetting pagination state");
+			// Reset filters ref when viewId changes to detect filter changes in new view
+			previousFiltersRef.current = "";
+			// Reset filter change timestamp
+			filterChangeTimestampRef.current = 0;
 		}
 	}, [viewId]);
+
+	// Reset accumulated data when filters change
+	React.useEffect(() => {
+		const currentFilters = JSON.stringify(viewQuery.data?.filters || {});
+		// Reset if filters changed (including going from empty to non-empty or vice versa)
+		if (previousFiltersRef.current !== currentFilters) {
+			// Skip reset on initial mount (when ref is empty string)
+			if (previousFiltersRef.current !== "") {
+				console.log("🔄 Filters changed - resetting pagination state and accumulated data", {
+					previous: previousFiltersRef.current,
+					current: currentFilters
+				});
+				setAccumulatedData([]);
+				setPage(1);
+				setHasReachedEnd(false);
+				// Record when filters changed to ensure we only use fresh data
+				filterChangeTimestampRef.current = Date.now();
+			}
+			previousFiltersRef.current = currentFilters;
+		}
+	}, [viewQuery.data?.filters]);
 
 	// Accumulate data as pages load
 	React.useEffect(() => {
@@ -132,18 +182,47 @@ export function ObjectTableView({
 		}
 
 		// Don't accumulate if query is still loading or fetching for page 1 (initial load or refetch)
+		// EXCEPT when accumulatedData is empty (filter was just reset) - in that case, we want to update
+		// even if fetching to replace the empty state with new filtered data
 		// For pages > 1, we allow accumulation even if fetching (for infinite scroll)
-		if (page === 1 && (
+		if (page === 1 && accumulatedData.length > 0 && (
 			(objectType === "contact" && (contactsQuery.isLoading || contactsQuery.isFetching)) ||
-			(objectType === "property" && (propertiesQuery.isLoading || propertiesQuery.isFetching))
+			(objectType === "property" && (propertiesQuery.isLoading || propertiesQuery.isFetching)) ||
+			(objectType === "company" && (companiesQuery.isLoading || companiesQuery.isFetching))
 		)) {
 			return;
 		}
 
 		if (objectType === "contact" && contactsQuery.data?.contacts) {
+			// If filters were recently changed and we're waiting for fresh data,
+			// don't use stale cached data - wait for the refetch to complete
+			if (filterChangeTimestampRef.current > 0 && 
+			    contactsQuery.isFetching && 
+			    !contactsQuery.isLoading &&
+			    accumulatedData.length === 0) {
+				console.log("⏳ Waiting for fresh data after filter change...");
+				return;
+			}
+			
+			// Once fresh data arrives after filter change, reset the timestamp
+			if (filterChangeTimestampRef.current > 0 && !contactsQuery.isFetching) {
+				filterChangeTimestampRef.current = 0;
+			}
+
+			console.log("🔄 Contact data received:", {
+				page,
+				newContactsCount: contactsQuery.data.contacts.length,
+				totalCount: contactsQuery.data.pagination?.total,
+				currentAccumulatedCount: accumulatedData.length,
+				isLoading: contactsQuery.isLoading,
+				isFetching: contactsQuery.isFetching,
+				isPlaceholderData: contactsQuery.isPlaceholderData
+			});
+			
 			setAccumulatedData((prev) => {
 				// If we're on page 1, replace all data. Otherwise, append new data
 				if (page === 1) {
+					console.log("📝 Page 1: Replacing all data with", contactsQuery.data.contacts.length, "contacts");
 					return contactsQuery.data.contacts as TableData[];
 				}
 				// Append new contacts, avoiding duplicates
@@ -153,9 +232,32 @@ export function ObjectTableView({
 					const id = (item as any)._id?.toString() || (item as any).id;
 					return !existingIds.has(id);
 				});
+				console.log("📝 Page", page + ": Appending", uniqueNew.length, "new contacts. Total will be:", prev.length + uniqueNew.length);
+				
+				// If no new unique contacts were added and we're on page > 1, we've reached the end
+				if (uniqueNew.length === 0 && page > 1) {
+					console.log("🏁 No more unique contacts to add - reached end of data");
+					setHasReachedEnd(true);
+				}
+				
 				return [...prev, ...uniqueNew];
 			});
 		} else if (objectType === "property" && propertiesQuery.data?.properties) {
+			// If filters were recently changed and we're waiting for fresh data,
+			// don't use stale cached data - wait for the refetch to complete
+			if (filterChangeTimestampRef.current > 0 && 
+			    propertiesQuery.isFetching && 
+			    !propertiesQuery.isLoading &&
+			    accumulatedData.length === 0) {
+				console.log("⏳ Waiting for fresh data after filter change...");
+				return;
+			}
+			
+			// Once fresh data arrives after filter change, reset the timestamp
+			if (filterChangeTimestampRef.current > 0 && !propertiesQuery.isFetching) {
+				filterChangeTimestampRef.current = 0;
+			}
+
 			setAccumulatedData((prev) => {
 				if (page === 1) {
 					return propertiesQuery.data.properties as TableData[];
@@ -166,10 +268,52 @@ export function ObjectTableView({
 					const id = (item as any)._id?.toString() || (item as any).id;
 					return !existingIds.has(id);
 				});
+				
+				// If no new unique properties and we're on page > 1, we've reached the end
+				if (uniqueNew.length === 0 && page > 1) {
+					console.log("🏁 No more unique properties to add - reached end of data");
+					setHasReachedEnd(true);
+				}
+				
+				return [...prev, ...uniqueNew];
+			});
+		} else if (objectType === "company" && companiesQuery.data?.companies) {
+			// If filters were recently changed and we're waiting for fresh data,
+			// don't use stale cached data - wait for the refetch to complete
+			if (filterChangeTimestampRef.current > 0 && 
+			    companiesQuery.isFetching && 
+			    !companiesQuery.isLoading &&
+			    accumulatedData.length === 0) {
+				console.log("⏳ Waiting for fresh data after filter change...");
+				return;
+			}
+			
+			// Once fresh data arrives after filter change, reset the timestamp
+			if (filterChangeTimestampRef.current > 0 && !companiesQuery.isFetching) {
+				filterChangeTimestampRef.current = 0;
+			}
+
+			setAccumulatedData((prev) => {
+				if (page === 1) {
+					return companiesQuery.data.companies as TableData[];
+				}
+				const newCompanies = companiesQuery.data.companies as TableData[];
+				const existingIds = new Set(prev.map((item) => (item as any)._id?.toString() || (item as any).id));
+				const uniqueNew = newCompanies.filter((item) => {
+					const id = (item as any)._id?.toString() || (item as any).id;
+					return !existingIds.has(id);
+				});
+				
+				// If no new unique companies and we're on page > 1, we've reached the end
+				if (uniqueNew.length === 0 && page > 1) {
+					console.log("🏁 No more unique companies to add - reached end of data");
+					setHasReachedEnd(true);
+				}
+				
 				return [...prev, ...uniqueNew];
 			});
 		}
-	}, [objectType, contactsQuery.data, contactsQuery.isLoading, contactsQuery.isFetching, propertiesQuery.data, propertiesQuery.isLoading, propertiesQuery.isFetching, page, viewId]);
+	}, [objectType, contactsQuery.data, contactsQuery.isLoading, contactsQuery.isFetching, propertiesQuery.data, propertiesQuery.isLoading, propertiesQuery.isFetching, companiesQuery.data, companiesQuery.isLoading, companiesQuery.isFetching, page, viewId]);
 
 	// Get data based on object type - use accumulated data
 	const data = React.useMemo(() => {
@@ -178,28 +322,95 @@ export function ObjectTableView({
 
 	// Get total count for infinite scroll support
 	const totalCount = React.useMemo(() => {
+		let count;
 		if (objectType === "contact") {
-			return contactsQuery.data?.pagination?.total;
+			count = contactsQuery.data?.pagination?.total;
+		} else if (objectType === "property") {
+			count = propertiesQuery.data?.pagination?.total;
+		} else if (objectType === "company") {
+			count = companiesQuery.data?.pagination?.total;
 		}
-		if (objectType === "property") {
-			return propertiesQuery.data?.pagination?.total;
-		}
-		return undefined;
-	}, [objectType, contactsQuery.data?.pagination?.total, propertiesQuery.data?.pagination?.total]);
+		
+		console.log("📊 Total count updated:", {
+			objectType,
+			totalCount: count,
+			currentDataLength: accumulatedData.length
+		});
+		
+		return count;
+	}, [objectType, contactsQuery.data?.pagination?.total, propertiesQuery.data?.pagination?.total, companiesQuery.data?.pagination?.total, accumulatedData.length]);
 
 	const isLoading =
 		viewQuery.isLoading ||
 		(objectType === "contact" && contactsQuery.isLoading && page === 1) ||
-		(objectType === "property" && propertiesQuery.isLoading && page === 1);
+		(objectType === "property" && propertiesQuery.isLoading && page === 1) ||
+		(objectType === "company" && companiesQuery.isLoading && page === 1);
 	
 	const isLoadingMore =
 		(objectType === "contact" && contactsQuery.isLoading && page > 1) ||
-		(objectType === "property" && propertiesQuery.isLoading && page > 1);
+		(objectType === "property" && propertiesQuery.isLoading && page > 1) ||
+		(objectType === "company" && companiesQuery.isLoading && page > 1);
+		
+	// Track isLoadingMore changes
+	React.useEffect(() => {
+		console.log("⏳ isLoadingMore state changed:", {
+			isLoadingMore,
+			page,
+			objectType,
+			contactsLoading: objectType === "contact" ? contactsQuery.isLoading : "N/A",
+			propertiesLoading: objectType === "property" ? propertiesQuery.isLoading : "N/A", 
+			companiesLoading: objectType === "company" ? companiesQuery.isLoading : "N/A"
+		});
+	}, [isLoadingMore, page, objectType, contactsQuery.isLoading, propertiesQuery.isLoading, companiesQuery.isLoading]);
+	
+	// Track when we reach the total count
+	React.useEffect(() => {
+		if (totalCount !== undefined && accumulatedData.length >= totalCount) {
+			console.log("✅ Reached total count - should stop loading:", {
+				accumulatedDataLength: accumulatedData.length,
+				totalCount,
+				difference: accumulatedData.length - totalCount
+			});
+		}
+	}, [accumulatedData.length, totalCount]);
+	
+	// Track hasReachedEnd flag changes
+	React.useEffect(() => {
+		console.log("🏁 hasReachedEnd flag changed:", {
+			hasReachedEnd,
+			accumulatedDataLength: accumulatedData.length,
+			totalCount,
+			page
+		});
+	}, [hasReachedEnd, accumulatedData.length, totalCount, page]);
 
 	// Handle loading more data
 	const handleLoadMore = React.useCallback(() => {
-		setPage((prev) => prev + 1);
-	}, [page]);
+		// Safeguard: Don't load more if we've reached the end (0 new results from backend)
+		if (hasReachedEnd) {
+			console.log("🛑 handleLoadMore blocked - reached end of data:", {
+				hasReachedEnd,
+				accumulatedDataLength: accumulatedData.length,
+				totalCount
+			});
+			return;
+		}
+		
+		// Safeguard: Don't load more if we already have all the data
+		if (totalCount !== undefined && accumulatedData.length >= totalCount) {
+			console.log("🛑 handleLoadMore blocked - already have all data:", {
+				accumulatedDataLength: accumulatedData.length,
+				totalCount
+			});
+			return;
+		}
+		
+		console.log("📈 handleLoadMore called, incrementing page");
+		setPage((prev) => {
+			console.log(`📄 Page changing: ${prev} → ${prev + 1}`);
+			return prev + 1;
+		});
+	}, [hasReachedEnd, totalCount, accumulatedData.length]); // Include dependencies to check against current data
 
 	const handleRowClick = (_row: TableData) => {
 		// TODO: Navigate to record detail page when route is available
@@ -272,6 +483,7 @@ export function ObjectTableView({
 				onColumnDefsChange={handleColumnDefsChange}
 				onLoadMore={handleLoadMore}
 				isLoadingMore={isLoadingMore}
+				hasReachedEnd={hasReachedEnd}
 			/>
 		</div>
 	);
